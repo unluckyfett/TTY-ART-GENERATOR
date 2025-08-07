@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>TTY-ART-GENERATOR</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #ddd; padding: 1em; }
+    input, select, button, textarea { margin: 0.5em 0; width: 100%; }
+    textarea { height: 6em; font-family: monospace; background: #222; color: #0f0; }
+    #typingDisplay { font-family: monospace; white-space: pre; background: #000; color: #0f0; padding: 0.5em; height: 6em; overflow-y: auto; border: 1px solid #444; }
+  </style>
+</head>
+<body>
+  <h2>TTY ART AFSK GENERATOR</h2>
+
+  <label>Character Set (for image):</label>
+  <select id="asciiRamp">
+    <option value=" #O.-">BOLD:#O.-</option>
+    <option value=" @#O=-.">SHADED:@#O=-</option>
+    <option value=" #XO.">TIGHT:#XO.</option>
+    <option value="#MW$%|=+:-. ">ASCII:#MW$%|=+:-.</option>
+    <option value="custom">CUSTOM (see below)</option>
+  </select><br>
+
+  <label>Custom Character Set:</label>
+  <input type="text" id="customRamp" value="@#=+:. "><br>
+
+  <label>Brightness (0.5 = normal):</label>
+  <input type="number" step="0.1" id="brightness" value="0.5"><br>
+
+  <label>Contrast (1 = normal):</label>
+  <input type="number" step="0.1" id="contrast" value="1.0"><br>
+
+  <label>Threshold (0 = grayscale, 255 = pure black/white):</label>
+  <input type="number" min="0" max="255" id="threshold" value="0"><br>
+
+  <div style="margin-top:0.5em; display: flex; flex-direction: column; gap: 0.2em; align-items: flex-start;">
+  <label><input type="checkbox" id="invert"> Invert image</label>
+  <label><input type="checkbox" id="dither"> Apply dithering</label>
+</div>
+
+  <label>ASCII Width (characters):</label>
+  <input type="number" id="asciiWidth" value="72"><br>
+
+  <label>Select Image:</label>
+  <input type="file" id="imageInput" accept="image/*"><br>
+
+  <button onclick="generateASCII()" style="background-color:#0f0; color:#000; font-weight:bold; border:2px solid #0c0;">Convert Image</button>
+  <textarea id="asciiOutput"></textarea>
+  <audio id="asciiAudioPlayer" controls style="display:block; margin-top:1em;"></audio>
+
+  <label>OR enter text below:</label>
+  <textarea id="textInput">HELLO WORLD</textarea>
+
+  <label>Baud Rate:</label>
+  <input type="number" id="baudRate" value="45.45">
+
+  <label>Mark Frequency (Hz):</label>
+  <input type="number" id="markFreq" value="2125">
+
+  <label>Space Frequency (Hz):</label>
+  <input type="number" id="spaceFreq" value="2295">
+
+  <label>Stop Bits:</label>
+  <input type="number" step="0.1" id="stopBits" value="1.5">
+
+  <button onclick="generateWavAFSK()" style="background-color:#0f0; color:#000; font-weight:bold; border:2px solid #0c0;">Generate AFSK WAV</button>
+  <audio id="audioPlayer" controls style="display:block; margin-top:1em;"></audio>
+
+  <canvas id="asciiCanvas" style="display:none"></canvas>
+
+  <script>
+    function generateASCII() {
+      const fileInput = document.getElementById('imageInput');
+      const canvas = document.getElementById('asciiCanvas');
+      const ctx = canvas.getContext('2d');
+      const width = parseInt(document.getElementById('asciiWidth').value);
+      let ramp = document.getElementById('asciiRamp').value;
+      if (ramp === 'custom') ramp = document.getElementById('customRamp').value;
+      const file = fileInput.files[0];
+      if (!file) return alert('No image selected');
+
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = e => {
+        img.onload = () => {
+          const ratio = img.height / img.width;
+          canvas.width = width;
+          canvas.height = Math.round(width * ratio);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const brightness = parseFloat(document.getElementById('brightness').value);
+          const contrast = parseFloat(document.getElementById('contrast').value);
+          const threshold = parseInt(document.getElementById('threshold').value);
+          const invert = document.getElementById('invert').checked;
+
+          const adjust = val => Math.min(255, Math.max(0, (val - 128) * contrast + 128 + brightness * 128 - 64));
+          for (let i = 0; i < imgData.data.length; i += 4) {
+            const r = imgData.data[i];
+            const g = imgData.data[i + 1];
+            const b = imgData.data[i + 2];
+            let avg = (r + g + b) / 3;
+            avg = adjust(avg);
+            if (invert) avg = 255 - avg;
+            if (threshold > 0) avg = avg < threshold ? 0 : 255;
+            imgData.data[i] = imgData.data[i + 1] = imgData.data[i + 2] = avg;
+          }
+          ctx.putImageData(imgData, 0, 0);
+          const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+          let output = '';
+          for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+              const idx = (y * canvas.width + x) * 4;
+              const avg = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+              const charIdx = Math.floor(avg / 256 * ramp.length);
+              output += ramp.charAt(charIdx);
+            }
+            output += '\n';
+          }
+
+          document.getElementById('asciiOutput').value = output;
+
+          const asciiText = filterModel28(output);
+          const baud = parseFloat(document.getElementById('baudRate').value);
+          const mark = parseFloat(document.getElementById('markFreq').value);
+          const space = parseFloat(document.getElementById('spaceFreq').value);
+          const stopBits = parseFloat(document.getElementById('stopBits').value);
+          const mode = 'ustty';
+
+          const bitDuration = 1 / baud;
+          const sampleRate = 44100;
+          const samplesPerBit = Math.floor(sampleRate * bitDuration);
+          const codewords = encodeToBaudot(asciiText, mode);
+          const signal = [];
+
+          for (const code of codewords) {
+            const bits = [0];
+            for (let i = 0; i < 5; i++) bits.push((code >> i) & 1);
+            for (let i = 0; i < stopBits; i++) bits.push(1);
+
+            for (const bit of bits) {
+              const freq = bit ? mark : space;
+              for (let i = 0; i < samplesPerBit; i++) {
+                const t = i / sampleRate;
+                signal.push(Math.sin(2 * Math.PI * freq * t));
+              }
+            }
+          }
+
+          const wav = encodeWav(signal, sampleRate);
+          const blob = new Blob([wav], { type: 'audio/wav' });
+          const url = URL.createObjectURL(blob);
+          const audio = document.getElementById('asciiAudioPlayer');
+          audio.src = url;
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function filterModel28(text) {
+      const allowed = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:;.,-'()/&$?! ";
+      return [...text].map(c => allowed.includes(c) ? c : ' ').join('');
+    }
+
+    function encodeToBaudot(text, mode) {
+      const charToCode = c => c.charCodeAt(0) & 0x1F;
+      return [...text.toUpperCase()].map(charToCode);
+    }
+
+    function encodeWav(samples, sampleRate) {
+      const buffer = new ArrayBuffer(44 + samples.length * 2);
+      const view = new DataView(buffer);
+      const writeString = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + samples.length * 2, true);
+      writeString(8, 'WAVEfmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, samples.length * 2, true);
+      samples.forEach((s, i) => view.setInt16(44 + i * 2, Math.max(-1, Math.min(1, s)) * 32767, true));
+      return buffer;
+    }
+
+    function generateWavAFSK() {
+      const text = filterModel28(document.getElementById('textInput').value);
+      const baud = parseFloat(document.getElementById('baudRate').value);
+      const mark = parseFloat(document.getElementById('markFreq').value);
+      const space = parseFloat(document.getElementById('spaceFreq').value);
+      const stopBits = parseFloat(document.getElementById('stopBits').value);
+      const mode = 'ustty';
+
+      const bitDuration = 1 / baud;
+      const sampleRate = 44100;
+      const samplesPerBit = Math.floor(sampleRate * bitDuration);
+      const codewords = encodeToBaudot(text, mode);
+      const signal = [];
+
+      for (const code of codewords) {
+        const bits = [0];
+        for (let i = 0; i < 5; i++) bits.push((code >> i) & 1);
+        for (let i = 0; i < stopBits; i++) bits.push(1);
+
+        for (const bit of bits) {
+          const freq = bit ? mark : space;
+          for (let i = 0; i < samplesPerBit; i++) {
+            const t = i / sampleRate;
+            signal.push(Math.sin(2 * Math.PI * freq * t));
+          }
+        }
+      }
+
+      const wav = encodeWav(signal, sampleRate);
+      const blob = new Blob([wav], { type: 'audio/wav' });
+      const url = URL.createObjectURL(blob);
+      const audio = document.getElementById('audioPlayer');
+      audio.src = url;
+    }
+  </script>
+</body>
+</html>
