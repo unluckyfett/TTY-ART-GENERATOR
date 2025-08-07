@@ -72,7 +72,51 @@
   <canvas id="asciiCanvas" style="display:none"></canvas>
 
   <script>
-    // JavaScript remains unchanged
+function generateASCII() {
+  const imageInput = document.getElementById('imageInput');
+  const canvas = document.getElementById('asciiCanvas');
+  const ctx = canvas.getContext('2d');
+  const asciiOutput = document.getElementById('asciiOutput');
+
+  if (!imageInput.files.length) return alert('Please select an image');
+
+  const file = imageInput.files[0];
+  const reader = new FileReader();
+
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      const width = parseInt(document.getElementById('asciiWidth').value);
+      const scale = width / img.width;
+      const height = Math.floor(img.height * scale);
+      canvas.width = width;
+      canvas.height = height;
+
+      ctx.drawImage(img, 0, 0, width, height);
+      const imageData = ctx.getImageData(0, 0, width, height).data;
+
+      const ramp = (document.getElementById('asciiRamp').value === 'custom')
+        ? document.getElementById('customRamp').value
+        : document.getElementById('asciiRamp').value;
+
+      let ascii = '';
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = (y * width + x) * 4;
+          const avg = (imageData[idx] + imageData[idx + 1] + imageData[idx + 2]) / 3;
+          const charIdx = Math.floor((avg / 255) * (ramp.length - 1));
+          ascii += ramp.charAt(ramp.length - 1 - charIdx);
+        }
+        ascii += "\n";
+      }
+
+      asciiOutput.value = ascii;
+    };
+    img.src = e.target.result;
+  };
+
+  reader.readAsDataURL(file);
+}
   </script>
 </body>
 </html>
