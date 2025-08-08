@@ -35,9 +35,9 @@
   <input type="number" min="0" max="255" id="threshold" value="0"><br>
 
   <div style="margin-top:0.5em; display: flex; flex-direction: column; gap: 0.2em; align-items: flex-start;">
-  <label><input type="checkbox" id="invert"> Invert image</label>
-  <label><input type="checkbox" id="dither"> Apply dithering</label>
-</div>
+    <label><input type="checkbox" id="invert"> Invert image</label>
+    <label><input type="checkbox" id="dither"> Apply dithering</label>
+  </div>
 
   <label>ASCII Width (characters):</label>
   <input type="number" id="asciiWidth" value="72"><br>
@@ -70,6 +70,16 @@
   <canvas id="asciiCanvas" style="display:none"></canvas>
 
   <script>
+    function generateMarkPreamble(durationSeconds, freq, sampleRate = 44100) {
+      const samples = [];
+      const totalSamples = Math.floor(durationSeconds * sampleRate);
+      for (let i = 0; i < totalSamples; i++) {
+        const t = i / sampleRate;
+        samples.push(Math.sin(2 * Math.PI * freq * t));
+      }
+      return samples;
+    }
+
     function generateASCII() {
       const fileInput = document.getElementById('imageInput');
       const canvas = document.getElementById('asciiCanvas');
@@ -135,11 +145,12 @@
           const codewords = encodeToBaudot(asciiText, mode);
           const signal = [];
 
+          signal.push(...generateMarkPreamble(2.0, mark, sampleRate));
+
           for (const code of codewords) {
             const bits = [0];
             for (let i = 0; i < 5; i++) bits.push((code >> i) & 1);
             for (let i = 0; i < stopBits; i++) bits.push(1);
-
             for (const bit of bits) {
               const freq = bit ? mark : space;
               for (let i = 0; i < samplesPerBit; i++) {
@@ -204,11 +215,12 @@
       const codewords = encodeToBaudot(text, mode);
       const signal = [];
 
+      signal.push(...generateMarkPreamble(2.0, mark, sampleRate));
+
       for (const code of codewords) {
         const bits = [0];
         for (let i = 0; i < 5; i++) bits.push((code >> i) & 1);
         for (let i = 0; i < stopBits; i++) bits.push(1);
-
         for (const bit of bits) {
           const freq = bit ? mark : space;
           for (let i = 0; i < samplesPerBit; i++) {
