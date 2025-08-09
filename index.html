@@ -13,18 +13,21 @@
 </head>
 <body>
   <h2>TTY ART AFSK GENERATOR</h2>
-
+<p style="font-size:0.9em; color:#aaa; margin-top:-0.5em;">
+  Select an image or type text. Adjust width, brightness, contrast, and aspect ratio.  
+  Click "Convert Image" to preview as ASCII art. Based on Model 28 Character set "#ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:;.,-'()/&$?! "
+</p>
   <label>Character Set (for image):</label>
   <select id="asciiRamp">
+	 <option value="custom">CUSTOM (see below)</option>
     <option value=" #O.-">BOLD:#O.-</option>
-    <option value=" @#O=-.">SHADED:@#O=-</option>
+    <option value=" &#O-.">SHADED:&#O-</option>
     <option value=" #XO.">TIGHT:#XO.</option>
-    <option value="#MW$%|=+:-. ">ASCII:#MW$%|=+:-.</option>
-    <option value="custom">CUSTOM (see below)</option>
+    <option value="#MW$&I:-. ">ASCII-ISH:#MW$&I:-.</option>
   </select>
 
   <label>Custom Character Set:</label>
-  <input type="text" id="customRamp" value="@#=+:. ">
+  <input type="text" id="customRamp" value="#MW$&. ">
 
   <div class="row">
     <label>Brightness (0.5 = normal):
@@ -53,7 +56,7 @@
 
   <div class="inline" style="justify-content:flex-start;">
     <label class="inline" style="width:auto;"><input type="checkbox" id="invert"> Invert image</label>
-    <label class="inline" style="width:auto;"><input type="checkbox" id="swapSense"> Swap Mark/Space</label>
+    
   </div>
 
   <label>Select Image:</label>
@@ -62,10 +65,16 @@
   <button onclick="generateASCII()" style="background-color:#0f0; color:#000; font-weight:bold; border:2px solid #0c0;">Convert Image</button>
   <textarea id="asciiOutput" rows="6"></textarea>
   <audio id="asciiAudioPlayer" controls style="display:block; margin-top:1em;"></audio>
-
-  <label>OR enter text below:</label>
-  <textarea id="textInput">HELLO WORLD</textarea>
-
+  
+<h2>TTY TEXT AFSK GENERATOR</h2>
+<p style="font-size:0.9em; color:#aaa; margin-top:-0.5em;">
+  Type your text and click "Generate AFSK WAV"
+  Based on Model 28 Character set "#ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:;.,-'()/&$?! "
+  <label>Enter text below:</label>
+  <textarea id="textInput">HELLORLD</textarea>
+    <button onclick="generateWavAFSK()" style="background-color:#0f0; color:#000; font-weight:bold; border:2px solid #0c0;">Generate AFSK WAV</button>
+  <audio id="audioPlayer" controls style="display:block; margin-top:1em;"></audio>
+<h2>GLOBAL SETTINGS</h2>
   <div class="row">
     <label>Baud Rate:
       <input type="number" id="baudRate" value="45.45">
@@ -88,11 +97,14 @@
     <label>Mechanical Delay after shift (ms):
       <input type="number" id="mechDelayMs" value="200">
     </label>
-    <div></div>
+    <div><label class="inline" style="width:auto;">
+  <input type="checkbox" id="swapSense">
+  Reverse mark/space (invert sense)
+</label></div>
   </div>
 
-  <button onclick="generateWavAFSK()" style="background-color:#0f0; color:#000; font-weight:bold; border:2px solid #0c0;">Generate AFSK WAV</button>
-  <audio id="audioPlayer" controls style="display:block; margin-top:1em;"></audio>
+
+
 
   <canvas id="asciiCanvas" style="display:none"></canvas>
 
@@ -301,7 +313,8 @@
       const stopBits = parseFloat(document.getElementById('stopBits').value);
       const mechMs = parseFloat(document.getElementById('mechDelayMs').value) || 0;
       const mechSec = Math.max(0, mechMs / 1000);
-      const swapSense = document.getElementById('swapSense').checked;
+      const swapSense = (document.getElementById('swapSense')?.checked) || false;
+
 
       const frames = buildBaudotFramesFromText(text, mechSec);
       const signal = afskFromFrames(frames, {
