@@ -6,12 +6,14 @@
   <style>
     body { font-family: sans-serif; background: #111; color: #ddd; padding: 1em; }
     input, select, button, textarea, label { margin: 0.5em 0; width: 100%; }
-    textarea { font-family: monospace; background: #222; color: #0f0; resize: vertical; }
+	textarea { font-family: monospace; background:#222; color:#0f0; resize:vertical; white-space:pre; overflow:auto; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5em; }
     .inline { display:flex; gap:1em; align-items:center; }
   </style>
 </head>
 <body>
+<img src="logo.png" alt="Logo" style="height:75px; width:auto;">
+
   <h2>TTY ART AFSK GENERATOR</h2>
 <p style="font-size:0.9em; color:#aaa; margin-top:-0.5em;">
   Select an image or type text. Adjust width, brightness, contrast, and aspect ratio.  
@@ -20,10 +22,10 @@
   <label>Character Set (for image):</label>
   <select id="asciiRamp">
 	 <option value="custom">CUSTOM (see below)</option>
-    <option value=" #O.-">BOLD:#O.-</option>
-    <option value=" &#O-.">SHADED:&#O-</option>
-    <option value=" #XO.">TIGHT:#XO.</option>
-    <option value="#MW$&I:-. ">ASCII-ISH:#MW$&I:-.</option>
+    <option value=" 0#.-">BOLD:#O.-</option>
+    <option value=" 0&#-.">SHADED:&#O-</option>
+    <option value=" #&0.">TIGHT:#XO.</option>
+    <option value="#MW$&I:-. ">ASCII-ISH:#MW$&I:-.(SLOW DUE TO SHIFTS)</option>
   </select>
 
   <label>Custom Character Set:</label>
@@ -39,7 +41,7 @@
   </div>
 
   <div class="row">
-    <label>Threshold (0..255; 0 = grayscale)
+    <label>Threshold (0-255; 0 = grayscale)
       <input type="number" min="0" max="255" id="threshold" value="0">
     </label>
     <label>ASCII Width (characters):
@@ -49,7 +51,7 @@
 
   <div class="row">
     <label>Vertical Scale (aspect):
-      <input type="number" step="0.1" id="vScale" value="0.5">
+      <input type="number" step="0.1" id="vScale" value="0.6">
     </label>
     <label></label>
   </div>
@@ -63,7 +65,7 @@
   <input type="file" id="imageInput" accept="image/*">
 
   <button onclick="generateASCII()" style="background-color:#0f0; color:#000; font-weight:bold; border:2px solid #0c0;">Convert Image</button>
-  <textarea id="asciiOutput" rows="6"></textarea>
+  <textarea id="asciiOutput" rows="20" cols="72" wrap="off" spellcheck="false"></textarea>
   <audio id="asciiAudioPlayer" controls style="display:block; margin-top:1em;"></audio>
   
 <h2>TTY TEXT AFSK GENERATOR</h2>
@@ -102,6 +104,11 @@
   Reverse mark/space (invert sense)
 </label></div>
   </div>
+  <img src="logo.png" alt="Logo" style="height:75px; width:auto;">
+<p style="font-size:0.8em; color:#888;">
+  © 2025 Frankie Caswell — Licensed under
+  <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>.
+</p>
 
 
 
@@ -214,36 +221,40 @@
 
       signal.push(...generateMarkPreamble(2.0, mark, sampleRate));
 
-      for (const f of frames) {
-        if (f.type === 'hold') {
-          addMarkHold(signal, f.sec, mark, sampleRate);
-          continue;
-        }
-        if (f.type === 'char') {
-          const code = f.code;
+		for (const f of frames) {
+		if (f.type === 'hold') {
+			addMarkHold(signal, f.sec, mark, sampleRate);
+			continue;
+		}
+		if (f.type === 'char') {
+			const code = f.code;
 
-          // start bit (SPACE = 0)
-          const startFreq = swapSense ? mark : space;
-          for (let i = 0; i < samplesPerBit; i++) {
-            signal.push(Math.sin(2 * Math.PI * startFreq * (i / sampleRate)));
-          }
-          // 5 data bits, LSB-first
-          for (let i = 0; i < 5; i++) {
-            const bit = (code >> i) & 1;
-            const freq = (bit ^ (swapSense ? 1 : 0)) ? mark : space;
-            for (let j = 0; j < samplesPerBit; j++) {
-              signal.push(Math.sin(2 * Math.PI * freq * (j / sampleRate)));
-            }
-          }
-          // stop bits (MARK)
-          const stopSamples = Math.floor(samplesPerBit * stopBits);
-          for (let i = 0; i < stopSamples; i++) {
-            signal.push(Math.sin(2 * Math.PI * mark * (i / sampleRate)));
-          }
-        }
-      }
+			// start bit (SPACE = 0)
+			const startFreq = swapSense ? mark : space;
+			for (let i = 0; i < samplesPerBit; i++) {
+			signal.push(Math.sin(2 * Math.PI * startFreq * (i / sampleRate)));
+			}
+			// 5 data bits, LSB-first
+			for (let i = 0; i < 5; i++) {
+			const bit = (code >> i) & 1;
+			const freq = (bit ^ (swapSense ? 1 : 0)) ? mark : space;
+			for (let j = 0; j < samplesPerBit; j++) {
+				signal.push(Math.sin(2 * Math.PI * freq * (j / sampleRate)));
+			}
+			}
+			// stop bits (MARK)
+			const stopSamples = Math.floor(samplesPerBit * stopBits);
+			for (let i = 0; i < stopSamples; i++) {
+			signal.push(Math.sin(2 * Math.PI * mark * (i / sampleRate)));
+			}
+		}
+		}
 
-      return signal;
+		// Tail mark to flush TU and prevent garbage character
+		addMarkHold(signal, 3.0, mark, sampleRate);
+
+		return signal;
+
     }
 
     // Image -> ASCII with vertical scaling; auto-resize preview
@@ -293,12 +304,16 @@
             const val = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
             output += ramp.charAt(Math.floor(val / 256 * ramp.length));
           }
-          output += '\n';
+          output += '\r\n';
         }
 
         const asciiBox = document.getElementById('asciiOutput');
-        asciiBox.value = output;
-        asciiBox.rows = Math.max(6, output.split('\n').length);
+		asciiBox.value = output;                 // your existing line
+		asciiBox.setAttribute('wrap','off');     // prevent soft wrap
+		asciiBox.cols = width;                   // lock to chosen character width
+		asciiBox.style.whiteSpace = 'pre';       // preserve spaces
+		asciiBox.rows = Math.max(6, output.split('\n').length);
+
 
         const asciiText = [...output].map(normalizeChar).join('');
         makeAudio(asciiText, document.getElementById('asciiAudioPlayer'));
