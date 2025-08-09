@@ -46,19 +46,7 @@ It is **not intended** for production or mission-critical communications.
 
 ## Live Demo
 
-If hosted on GitHub Pages or another static site, link it here:  
-`[Live Demo Link](https://yourusername.github.io/yourrepo/)`
-
----
-
-## Getting Started
-
-1. Clone or download this repository.
-2. Open `index.html` (or `new2.html`) in any modern browser.
-3. Choose an image or type text.
-4. Adjust settings.
-5. Click **Convert Image** or **Generate AFSK WAV**.
-6. Play or save the generated audio.
+https://unluckyfett.github.io/TTY-ART-GENERATOR/
 
 ---
 
