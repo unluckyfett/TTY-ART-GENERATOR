@@ -6,26 +6,28 @@
   <style>
     body { font-family: sans-serif; background: #111; color: #ddd; padding: 1em; }
     input, select, button, textarea, label { margin: 0.5em 0; width: 100%; }
-	textarea { font-family: monospace; background:#222; color:#0f0; resize:vertical; white-space:pre; overflow:auto; }
+    textarea { font-family: monospace; background:#222; color:#0f0; resize:vertical; white-space:pre; overflow:auto; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5em; }
     .inline { display:flex; gap:1em; align-items:center; }
   </style>
 </head>
 <body>
-<img src="logo.png" alt="Logo" style="height:75px; width:auto;">
+  <img src="logo.png" alt="Logo" style="height:75px; width:auto;">
 
   <h2>TTY ART AFSK GENERATOR</h2>
-<p style="font-size:0.9em; color:#aaa; margin-top:-0.5em;">
-  Select an image or type text. Adjust width, brightness, contrast, and aspect ratio.  
-  Click "Convert Image" to preview as ASCII art. Based on Model 28 Character set "#ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:;.,-'()/&$?! "
-</p>
+  <p style="font-size:0.9em; color:#aaa; margin-top:-0.5em;">
+    Select an image or type text. Adjust width, brightness, contrast, and aspect ratio.
+    Click "Convert Image" to preview as TTY art. Based on Model 28 Character set
+    "#ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:;.,-'()/&$?! " Output will be masked to these characters
+  </p>
+
   <label>Character Set (for image):</label>
   <select id="asciiRamp">
-	 <option value="custom">CUSTOM (see below)</option>
-    <option value=" 0#.-">BOLD:#O.-</option>
-    <option value=" 0&#-.">SHADED:&#O-</option>
-    <option value=" #&0.">TIGHT:#XO.</option>
-    <option value="#MW$&I:-. ">ASCII-ISH:#MW$&I:-.(SLOW DUE TO SHIFTS)</option>
+    <option value="custom">CUSTOM (see below)</option>
+    <option value=" 0#.-">BOLD:#0.-</option>
+    <option value=" 0&#-.">SHADED:&#0-</option>
+    <option value=" #&0.">TIGHT:#&0.</option>
+    <option value="#MW$&I:-. ">ASCII-ISH:#MW$&I:-.(SLOWER DUE TO SHIFTS)</option>
   </select>
 
   <label>Custom Character Set:</label>
@@ -44,7 +46,7 @@
     <label>Threshold (0-255; 0 = grayscale)
       <input type="number" min="0" max="255" id="threshold" value="0">
     </label>
-    <label>ASCII Width (characters):
+    <label>Line Width (characters):
       <input type="number" id="asciiWidth" value="72">
     </label>
   </div>
@@ -58,7 +60,6 @@
 
   <div class="inline" style="justify-content:flex-start;">
     <label class="inline" style="width:auto;"><input type="checkbox" id="invert"> Invert image</label>
-    
   </div>
 
   <label>Select Image:</label>
@@ -67,16 +68,18 @@
   <button onclick="generateASCII()" style="background-color:#0f0; color:#000; font-weight:bold; border:2px solid #0c0;">Convert Image</button>
   <textarea id="asciiOutput" rows="20" cols="72" wrap="off" spellcheck="false"></textarea>
   <audio id="asciiAudioPlayer" controls style="display:block; margin-top:1em;"></audio>
-  
-<h2>TTY TEXT AFSK GENERATOR</h2>
-<p style="font-size:0.9em; color:#aaa; margin-top:-0.5em;">
-  Type your text and click "Generate AFSK WAV"
-  Based on Model 28 Character set "#ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:;.,-'()/&$?! "
+
+  <h2>TTY TEXT AFSK GENERATOR</h2>
+  <p style="font-size:0.9em; color:#aaa; margin-top:-0.5em;">
+    Type your text and click "Generate AFSK WAV".
+    Text will be masked to this character set "#ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:;.,-'()/&$?! "
+  </p>
   <label>Enter text below:</label>
   <textarea id="textInput">HELLORLD</textarea>
-    <button onclick="generateWavAFSK()" style="background-color:#0f0; color:#000; font-weight:bold; border:2px solid #0c0;">Generate AFSK WAV</button>
+  <button onclick="generateWavAFSK()" style="background-color:#0f0; color:#000; font-weight:bold; border:2px solid #0c0;">Generate AFSK WAV</button>
   <audio id="audioPlayer" controls style="display:block; margin-top:1em;"></audio>
-<h2>GLOBAL SETTINGS</h2>
+
+  <h2>GLOBAL SETTINGS</h2>
   <div class="row">
     <label>Baud Rate:
       <input type="number" id="baudRate" value="45.45">
@@ -94,31 +97,23 @@
       <input type="number" id="spaceFreq" value="2295">
     </label>
   </div>
-	
+<!--
   <div class="row">
     <label>Delay after shift (ms):
       <input type="number" id="mechDelayMs" value="0">
     </label>
-<!--
-<div><label class="inline" style="width:auto;">
-  <input type="checkbox" id="swapSense">
-  Reverse mark/space (invert sense)
-</label></div>
--->
   </div>
+-->
   <img src="logo.png" alt="Logo" style="height:75px; width:auto;">
-<p style="font-size:0.8em; color:#888;">
-  © 2025 Frankie Caswell — Licensed under
-  <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>.
-</p>
-
-
-
+  <p style="font-size:0.8em; color:#888;">
+    © 2025 Frankie Caswell — Licensed under
+    <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>.
+  </p>
 
   <canvas id="asciiCanvas" style="display:none"></canvas>
 
   <script>
-    // Safe mapping
+    // ---------------- Safe mapping ----------------
     const printableSet = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:;.,-'()/&$?! ";
     const replacementMap = {
       '"': "'", '=': '-', '*': 'X', '_': '-', '@': 'A', '%': 'O',
@@ -131,7 +126,7 @@
       return printableSet.includes(safe) ? safe : ' ';
     };
 
-    // ITA2
+    // ---------------- ITA2 ----------------
     const LTRS = 0b11111, FIGS = 0b11011;
     const BAUDOT_TABLE = {
       LTRS: {
@@ -154,7 +149,7 @@
       }
     };
 
-    // Build frames; force CR LF + LTRS at start and end
+    // ---------------- Frames builder ----------------
     function buildBaudotFramesFromText(text, mechDelaySec) {
       const frames = [];
       let currentShift = null;
@@ -166,7 +161,6 @@
 
       for (const raw of text) {
         const ch = normalizeChar(raw);
-
         let needed = null;
         if (ch in BAUDOT_TABLE.LTRS) needed = 'LTRS';
         else if (ch in BAUDOT_TABLE.FIGS) needed = 'FIGS';
@@ -177,29 +171,101 @@
           if (mechDelaySec > 0) frames.push({ type: 'hold', sec: mechDelaySec });
           currentShift = needed;
         }
-
         frames.push({ type: 'char', code: BAUDOT_TABLE[needed][ch] });
       }
 
       if (currentShift !== 'LTRS') frames.push({ type: 'char', code: LTRS });
       frames.push({ type: 'char', code: BAUDOT_TABLE.LTRS['\r'] });
       frames.push({ type: 'char', code: BAUDOT_TABLE.LTRS['\n'] });
-
       return frames;
     }
 
-    // Audio helpers
-    function addMarkHold(signal, sec, markFreq, sampleRate) {
-      const n = Math.max(0, Math.floor(sec * sampleRate));
-      for (let i = 0; i < n; i++) {
-        signal.push(Math.sin(2 * Math.PI * markFreq * (i / sampleRate)));
+    // ---------------- DDS helpers (phase-continuous + optional zero-cross) ----------------
+    function ddsPush(signal, freq, seconds, sampleRate, phaseState) {
+      const total = Math.max(0, Math.floor(seconds * sampleRate));
+      const phaseInc = 2 * Math.PI * freq / sampleRate;
+      let phase = phaseState.value;
+      for (let i = 0; i < total; i++) {
+        signal.push(Math.sin(phase));
+        phase += phaseInc;
+        if (phase > Math.PI) phase -= 2 * Math.PI;
       }
+      phaseState.value = phase;
     }
-    function generateMarkPreamble(durationSec, markFreq, sampleRate = 44100) {
-      const sig = [];
-      addMarkHold(sig, durationSec, markFreq, sampleRate);
-      return sig;
+
+    function ddsPushSamples(signal, freq, numSamples, sampleRate, phaseState) {
+      const phaseInc = 2 * Math.PI * freq / sampleRate;
+      let phase = phaseState.value;
+      for (let i = 0; i < numSamples; i++) {
+        signal.push(Math.sin(phase));
+        phase += phaseInc;
+        if (phase > Math.PI) phase -= 2 * Math.PI;
+      }
+      phaseState.value = phase;
     }
+
+    function advanceToNextZeroCross(signal, freq, sampleRate, phaseState, maxExtraSamples = 200) {
+      const phaseInc = 2 * Math.PI * freq / sampleRate;
+      let phase = phaseState.value;
+      for (let i = 0; i < maxExtraSamples; i++) {
+        const s = Math.sin(phase);
+        if (Math.abs(s) < 1e-3 && Math.cos(phase) > 0) {
+          phaseState.value = phase;
+          return i;
+        }
+        signal.push(s);
+        phase += phaseInc;
+        if (phase > Math.PI) phase -= 2 * Math.PI;
+      }
+      phaseState.value = phase;
+      return maxExtraSamples;
+    }
+
+    // ---------------- Frames -> Audio (uses DDS) ----------------
+    function afskFromFrames(frames, opts) {
+      const { baud, mark, space, stopBits, sampleRate, swapSense } = opts;
+      const samplesPerBit = Math.floor(sampleRate / baud);
+      const signal = [];
+      const phase = { value: 0.0 };
+      const ZERO_CROSS_SWITCHING = true;
+      const MAX_ZC_SLOP_SAMPLES = Math.floor(0.001 * sampleRate); // ~1ms
+
+      // Preamble MARK
+      ddsPush(signal, mark, 2.0, sampleRate, phase);
+
+      for (const f of frames) {
+        if (f.type === 'hold') {
+          ddsPush(signal, mark, f.sec, sampleRate, phase);
+          continue;
+        }
+        if (f.type === 'char') {
+          const code = f.code;
+
+          // Start bit (SPACE = 0)
+          const startFreq = swapSense ? mark : space;
+          if (ZERO_CROSS_SWITCHING) advanceToNextZeroCross(signal, startFreq, sampleRate, phase, MAX_ZC_SLOP_SAMPLES);
+          ddsPushSamples(signal, startFreq, samplesPerBit, sampleRate, phase);
+
+          // 5 data bits LSB first
+          for (let i = 0; i < 5; i++) {
+            const bit = (code >> i) & 1;
+            const freq = (bit ^ (swapSense ? 1 : 0)) ? mark : space;
+            if (ZERO_CROSS_SWITCHING) advanceToNextZeroCross(signal, freq, sampleRate, phase, MAX_ZC_SLOP_SAMPLES);
+            ddsPushSamples(signal, freq, samplesPerBit, sampleRate, phase);
+          }
+
+          // Stop bits (MARK)
+          if (ZERO_CROSS_SWITCHING) advanceToNextZeroCross(signal, mark, sampleRate, phase, MAX_ZC_SLOP_SAMPLES);
+          ddsPushSamples(signal, mark, Math.floor(samplesPerBit * stopBits), sampleRate, phase);
+        }
+      }
+
+      // Tail MARK to flush TU
+      ddsPush(signal, mark, 3.0, sampleRate, phase);
+      return signal;
+    }
+
+    // ---------------- WAV encoding ----------------
     function encodeWav(samples, sampleRate) {
       const buffer = new ArrayBuffer(44 + samples.length * 2);
       const view = new DataView(buffer);
@@ -214,52 +280,7 @@
       return buffer;
     }
 
-    // Frames -> Audio
-    function afskFromFrames(frames, opts) {
-      const { baud, mark, space, stopBits, sampleRate, swapSense } = opts;
-      const bitDur = 1 / baud;
-      const samplesPerBit = Math.floor(sampleRate * bitDur);
-      const signal = [];
-
-      signal.push(...generateMarkPreamble(2.0, mark, sampleRate));
-
-		for (const f of frames) {
-		if (f.type === 'hold') {
-			addMarkHold(signal, f.sec, mark, sampleRate);
-			continue;
-		}
-		if (f.type === 'char') {
-			const code = f.code;
-
-			// start bit (SPACE = 0)
-			const startFreq = swapSense ? mark : space;
-			for (let i = 0; i < samplesPerBit; i++) {
-			signal.push(Math.sin(2 * Math.PI * startFreq * (i / sampleRate)));
-			}
-			// 5 data bits, LSB-first
-			for (let i = 0; i < 5; i++) {
-			const bit = (code >> i) & 1;
-			const freq = (bit ^ (swapSense ? 1 : 0)) ? mark : space;
-			for (let j = 0; j < samplesPerBit; j++) {
-				signal.push(Math.sin(2 * Math.PI * freq * (j / sampleRate)));
-			}
-			}
-			// stop bits (MARK)
-			const stopSamples = Math.floor(samplesPerBit * stopBits);
-			for (let i = 0; i < stopSamples; i++) {
-			signal.push(Math.sin(2 * Math.PI * mark * (i / sampleRate)));
-			}
-		}
-		}
-
-		// Tail mark to flush TU and prevent garbage character
-		addMarkHold(signal, 3.0, mark, sampleRate);
-
-		return signal;
-
-    }
-
-    // Image -> ASCII with vertical scaling; auto-resize preview
+    // ---------------- Image -> ASCII -> Audio ----------------
     function generateASCII() {
       const file = document.getElementById('imageInput').files[0];
       if (!file) return alert('No image selected');
@@ -268,7 +289,7 @@
       const ctx = canvas.getContext('2d');
 
       const width = parseInt(document.getElementById('asciiWidth').value);
-      const vScale = parseFloat(document.getElementById('vScale').value) || 1.0; // <— aspect control
+      const vScale = parseFloat(document.getElementById('vScale').value) || 1.0;
       let ramp = document.getElementById('asciiRamp').value;
       if (ramp === 'custom') ramp = document.getElementById('customRamp').value;
 
@@ -278,8 +299,7 @@
       img.onload = () => {
         const ratio = img.height / img.width;
         canvas.width = width;
-        canvas.height = Math.max(1, Math.round(width * ratio * vScale)); // keep line length; scale rows
-
+        canvas.height = Math.max(1, Math.round(width * ratio * vScale));
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
         const brightness = parseFloat(document.getElementById('brightness').value);
@@ -310,12 +330,11 @@
         }
 
         const asciiBox = document.getElementById('asciiOutput');
-		asciiBox.value = output;                 // your existing line
-		asciiBox.setAttribute('wrap','off');     // prevent soft wrap
-		asciiBox.cols = width;                   // lock to chosen character width
-		asciiBox.style.whiteSpace = 'pre';       // preserve spaces
-		asciiBox.rows = Math.max(6, output.split('\n').length);
-
+        asciiBox.value = output;
+        asciiBox.setAttribute('wrap','off');
+        asciiBox.cols = width;
+        asciiBox.style.whiteSpace = 'pre';
+        asciiBox.rows = Math.max(6, output.split('\n').length);
 
         const asciiText = [...output].map(normalizeChar).join('');
         makeAudio(asciiText, document.getElementById('asciiAudioPlayer'));
@@ -323,23 +342,28 @@
       reader.readAsDataURL(file);
     }
 
+    // ---------------- Text -> Audio ----------------
     function makeAudio(text, audioEl) {
-      const baud = parseFloat(document.getElementById('baudRate').value);
-      const mark = parseFloat(document.getElementById('markFreq').value);
-      const space = parseFloat(document.getElementById('spaceFreq').value);
-      const stopBits = parseFloat(document.getElementById('stopBits').value);
-      const mechMs = parseFloat(document.getElementById('mechDelayMs').value) || 0;
-      const mechSec = Math.max(0, mechMs / 1000);
-      const swapSense = (document.getElementById('swapSense')?.checked) || false;
+      try {
+        const baud = parseFloat(document.getElementById('baudRate').value);
+        const mark = parseFloat(document.getElementById('markFreq').value);
+        const space = parseFloat(document.getElementById('spaceFreq').value);
+        const stopBits = parseFloat(document.getElementById('stopBits').value);
+        const mechMs = document.getElementById('mechDelayMs')?.value ? parseFloat(document.getElementById('mechDelayMs').value) : 0;
+        const mechSec = Math.max(0, mechMs / 1000);
+        const swapSense = (document.getElementById('swapSense')?.checked) || false;
 
-
-      const frames = buildBaudotFramesFromText(text, mechSec);
-      const signal = afskFromFrames(frames, {
-        baud, mark, space, stopBits, sampleRate: 44100, swapSense
-      });
-      const wav = encodeWav(signal, 44100);
-      const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
-      audioEl.src = url;
+        const frames = buildBaudotFramesFromText(text, mechSec);
+        const signal = afskFromFrames(frames, {
+          baud, mark, space, stopBits, sampleRate: 44100, swapSense
+        });
+        const wav = encodeWav(signal, 44100);
+        const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
+        audioEl.src = url;
+      } catch (e) {
+        console.error('Audio generation error:', e);
+        alert('Audio generation failed: ' + e.message);
+      }
     }
 
     function generateWavAFSK() {
