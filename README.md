@@ -14,6 +14,12 @@ This tool runs entirely in the browser — no installation required — making i
 
 ---
 
+## Live Demo
+
+https://unluckyfett.github.io/TTY-ART-GENERATOR/
+
+---
+
 ## Features
 
 - **Image to ASCII conversion** with adjustable:
@@ -41,12 +47,6 @@ This project was created for:
 - Experimenting with image-to-text conversion for constrained output devices
 
 It is **not intended** for production or mission-critical communications.
-
----
-
-## Live Demo
-
-https://unluckyfett.github.io/TTY-ART-GENERATOR/
 
 ---
 
